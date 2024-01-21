@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/cities")
@@ -23,12 +24,29 @@ public class VilleController {
 
     @GetMapping("/{latitude}/{longitude}")
     @ResponseBody
-    public Ville etCityByCoordinates(@PathVariable double latitude, @PathVariable double longitude) {
-        // Filtrer la liste des villes pour obtenir les informations de la ville spécifiée
-        return cities.stream()
-                .filter(city -> city.getLatitude() == latitude && city.getLongitude() == longitude)
-                .findFirst()
-                .orElse(null); // Renvoie null si la ville n'est pas trouvée
+    public List<Ville> getNeighborsOfSpecifiedPoint(
+            @PathVariable double latitude,
+            @PathVariable double longitude) {
+
+        // Définir le périmètre de recherche pour les villes voisines
+        double latitudeThreshold = 0.1;
+        double longitudeThreshold = 0.5;
+
+        // Filtrer la liste des villes pour obtenir les informations des villes voisines du point spécifié
+        List<Ville> result = cities.stream()
+                .filter(city ->
+                        // Filtrer les villes voisines dans le périmètre défini
+                        (city.getLatitude() >= latitude - latitudeThreshold &&
+                                city.getLatitude() <= latitude + latitudeThreshold &&
+                                city.getLongitude() >= longitude - longitudeThreshold &&
+                                city.getLongitude() <= longitude + longitudeThreshold)
+                )
+                .collect(Collectors.toList());
+
+        // Ajouter le point spécifié aux résultats pour référence
+        result.add(new Ville());
+
+        return result.isEmpty() ? null : result;
     }
 
     private void loadCitiesFromJson() {
